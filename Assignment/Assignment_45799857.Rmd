@@ -1,0 +1,263 @@
+---
+title: "Assignment_STAT6180"
+author: "Alyssa Lim"
+date: "5/6/2020"
+output: 
+        pdf_document:
+                latex_engine: xelatex
+---
+
+# Question 1 - Companies Data
+
+```{r companies dataset}
+companies = read.table("companies.dat", header = TRUE)
+```
+
+## Correlation Matrix
+
+The Correlation Matrix indicates the linear relationship between the variables
+
+* The upper right of the matrix contains the __correlation coefficients__
+* The lower left of the matrix illustrate the linear relationship using __scatter plot__
+* The diagonal of the matrix shows the __distribution of the variables__
+
+```{r correlation, results = "markup"}
+library("PerformanceAnalytics")
+
+companies.cor <- companies[, c(2,3,4,5,6,7,8)]
+chart.Correlation(companies.cor, histogram = TRUE, pch = 19)
+```
+
+## Scatter Plots and Variables Relationship
+
+### a. Stock Prices Plots
+
+* The __stock price depends on the company earnings__, which means when the earnings is high the stock price will also rise
+* The stock price affects yield inversely proportional, __if the stock price is high the yield will decrease__
+
+```{r scatterplot 1}
+par(mfrow = c(2,2))
+
+plot(companies$earnings, companies$stock_prices, main = "Stock Prices vs Earnings", 
+     xlab = "Earnings", ylab = "Stock Prices")
+
+plot(companies$return_equity, companies$stock_prices, main = "Stock Prices vs ROE", 
+     xlab = "ROE", ylab = "Stock Prices")
+
+plot(companies$stock_prices, companies$yield, main = "Stock Prices vs Yield", 
+     xlab = "Stock Prices", ylab = "Yield")
+```
+
+### b. Dividend vs Yield Plot
+
+* The yield depends on the dividend, __yield's behaviour is based on the increase or decrease of the dividend issued by the company__
+
+```{r scatterplot 2}
+plot(companies$dividend, companies$yield, main = "Dividend vs Yield", 
+     xlab = "Dividend", ylab = "Yield")
+```
+
+### c. ROS Plots
+
+* The __Return of Sales is dependent on sales__, but inversely proportional with each other.
+* Return of Sales measures company's efficiency, while Return of Equity measure performance. __Performance increases as company efficiency also increases__.
+
+```{r scatterplot 3}
+par(mfrow = c(1,2))
+
+plot(companies$sales, companies$return_sales, main = "Sales vs ROS", 
+     xlab = "Sales", ylab = "Return of Sales")
+
+plot(companies$return_sales, companies$return_equity, 
+     main = "ROS vs ROE", xlab = "Return of Sales", 
+     ylab = "Return of Equity")
+```
+
+## Regression Model
+
+### Regression Summary
+
+<p> RESPONSE = Stock Prices
+<p> PREDICTORS = All
+
+* $R^2 = 0.7717$ indicates that the model is strong, this is due to all predictors are used in fitting the model
+* $P-Value = 1.139e^{-06}$ which is less than 0.05 significance level, which indicates linear relationship between the response and all predictors
+
+```{r all predictors}
+fitAll = lm(stock_prices ~ ., data = companies.cor)
+summary(fitAll)
+```
+
+### Validating the Full Regression Model
+
+<p> $ε ∼ N (0, σ^2)$ </p>
+* Q-Q plot indicates normal residual as it follows a straight line
+* Residual vs Fitted plot doesn't contain any pattern which confirms constant variance
+
+__Therefore, Full Regression Analysis is Valid__
+
+```{r validation}
+par(mfrow = c(1, 2))
+
+qqnorm(fitAll$residuals)
+plot(fitAll$fitted, fitAll$residuals, main = "Residual vs Fitted",
+     xlab = "Fitted", ylab = "Residuals")
+```
+
+### 95% Confidence Interval of the Slope
+
+The confidence interval shows the range, where the possible true value of the slope, for Earnings lies. 
+
+```{r 95% CI}
+confint(fitAll, 'earnings', level=0.95)
+```
+
+## Multiple Regression
+
+### Multiple Regression Summary
+
+<p> RESPONSE : Stock Prices
+<p> PREDICTORS : All
+
+### Hypothesis:
+
+<p> $H_0: β_1 + β_2 + β_3 + β_4 + β_5 + β_6 = 0$
+<p> $H_1:$ not all $β_i = 0$
+
+```{r anova}
+aov.fitAll = anova(fitAll)
+aov.fitAll
+```
+
+### Test Statistic:
+
+```{r Fobs}
+MS = aov.fitAll$`Mean Sq`
+Full_regSS = MS[1] + MS[2] + MS[3] + MS[4] + MS[5] + MS[6]
+RegMS = Full_regSS/6
+Fobs = RegMS/MS[7]
+cat('Fobs = ', Fobs)
+```
+
+### Null Distribution:
+
+```{r F critical}
+cat('F6,24 = ', qf(.95, df1 = 6, df2 = 24))
+```
+
+$P(F_{6,24} ≥ F_{obs}) = 2.51 < 13.52$
+
+__Reject Null Hypothesis__
+
+### P-Value:
+
+```{r P-value}
+Pval = pf(q = 13.51843, df1 = 6, df2 = 24, lower.tail = FALSE)
+cat('P-value =', Pval)
+```
+
+### Conclusion:
+
+* $P(F_{6,24} < F_{obs})$, significant evidence to reject the null hypothesis
+* P-value is less than 0.05 significance level, which indicates that our model is a regression model
+* Though looking at the F-test output of each variables, we can see that Sales and Return seems to be insignificant predictors for these model
+
+## Backward Model Selection
+
+1. All Predictors
+
+_Sales_ gives the highest t-test output of __0.7728__, which mean it is the most insignicant predictor in the model. 
+
+```{r}
+summary(fitAll)
+```
+
+2. Remove Sales in predictors
+
+_Return on Equity (ROE)_ now gives the highest t-test output of __0.7281__, which means it is also a insignificant predictor in the model.
+
+```{r}
+fitFive = lm(stock_prices ~ dividend + yield + earnings + return_sales + return_equity,
+             data = companies.cor)
+summary(fitFive)
+```
+
+3. Remove Return on Equity in predictors
+
+```{r}
+fitFour = lm(stock_prices ~ dividend + yield + earnings + return_sales, 
+             data = companies.cor)
+summary(fitFour)
+```
+
+Therefore the best regression model for the data is:
+<p>$Y = 27.2 + (11.03 * dividend) + (-3.33 * yield) + (2.7 * earnings) + (0.57* ROS)$</p>
+
+* All remaining predictors have T-test output less than 0.05 significance level, which indicates they are signicant predictors
+* $R^2 = 0.7697$ indicates strong model, due to the model captures 77% of the variability in the companies data
+
+# Question 2 - Prof 2020 Data
+
+Added square and cube of the predictor variety
+
+```{r}
+prof = read.table("prof_2020.dat", header = TRUE)
+prof$variety2 = prof$variety^2
+prof$variety3 = prof$variety^3
+head(prof)
+```
+
+## Fitting the Data
+
+### Linear Model
+
+```{r}
+lr = lm(mathprof ~ variety, data = prof)
+summary(lr)
+```
+
+### Quadratic Model
+
+```{r}
+qr = lm(mathprof ~ variety + variety2, data = prof)
+summary(qr)
+```
+
+### Cubic Model
+
+```{r}
+cr = lm(mathprof ~ variety + variety2 + variety3, data = prof)
+summary(cr)
+```
+
+## Data Plot
+
+* Linear Fit = BLUE
+* Quadratic Fit = RED
+* Cubic Fit = GREEN
+
+```{r}
+linear = aov(mathprof ~ variety, data = prof)
+quad = aov(mathprof ~ variety + I(variety^2), data = prof)
+cub = aov(mathprof ~ variety + I(variety^2) + I(variety^3), data = prof)
+
+plot(mathprof ~ variety, data = prof)
+varietyDF = data.frame(variety = seq(from = min(prof$variety), to = max(prof$variety),
+                                     length = 37))
+fitted1 = predict(linear, varietyDF)
+fitted2 = predict(quad, varietyDF)
+fitted3 = predict(cub, varietyDF)
+
+lines(varietyDF$variety, fitted1, col = 'blue')
+lines(varietyDF$variety, fitted2, col = 'red')
+lines(varietyDF$variety, fitted3, col = 'green')
+```
+
+## Conclusion
+
+<p> The best model is Quadratic Model, due to:
+
+* It gives the highest Adjusted $R^2$ value of 0.8153
+* It has the lowest P-value of $1.282e^{-13}$
+* In cubic fit, variety3 is insignificant in the model, with the highest T-test output of 0.854
+* In quadratic fit all predictors are significant, all predictors has T-test output of less than 0.05 significance level
