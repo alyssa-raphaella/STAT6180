@@ -119,6 +119,10 @@ confint(fitAll, 'earnings', level=0.95)
 <p> RESPONSE : Stock Prices
 <p> PREDICTORS : All
 
+```{r}
+summary(fitAll)
+```
+
 ### Hypothesis:
 
 <p> $H_0: β_1 + β_2 + β_3 + β_4 + β_5 + β_6 = 0$
@@ -141,15 +145,15 @@ cat('Fobs = ', Fobs)
 
 ### Null Distribution:
 
+<p> $Pr(F_{6,24} ≥ F_{obs} |$ all $β_i = 0)$
+
+### P-Value:
+
 ```{r F critical}
 cat('F6,24 = ', qf(.95, df1 = 6, df2 = 24))
 ```
 
-$P(F_{6,24} ≥ F_{obs}) = 2.51 < 13.52$
-
-__Reject Null Hypothesis__
-
-### P-Value:
+$Pr(F_{6,24} ≥ F_{obs}) = 2.51 < 13.52$
 
 ```{r P-value}
 Pval = pf(q = 13.51843, df1 = 6, df2 = 24, lower.tail = FALSE)
@@ -168,7 +172,7 @@ cat('P-value =', Pval)
 
 _Sales_ gives the highest t-test output of __0.7728__, which mean it is the most insignicant predictor in the model. 
 
-```{r}
+```{r back1}
 summary(fitAll)
 ```
 
@@ -176,7 +180,7 @@ summary(fitAll)
 
 _Return on Equity (ROE)_ now gives the highest t-test output of __0.7281__, which means it is also a insignificant predictor in the model.
 
-```{r}
+```{r back2}
 fitFive = lm(stock_prices ~ dividend + yield + earnings + return_sales + return_equity,
              data = companies.cor)
 summary(fitFive)
@@ -184,7 +188,7 @@ summary(fitFive)
 
 3. Remove Return on Equity in predictors
 
-```{r}
+```{r back3}
 fitFour = lm(stock_prices ~ dividend + yield + earnings + return_sales, 
              data = companies.cor)
 summary(fitFour)
@@ -200,7 +204,7 @@ Therefore the best regression model for the data is:
 
 Added square and cube of the predictor variety
 
-```{r}
+```{r prof table}
 prof = read.table("prof_2020.dat", header = TRUE)
 prof$variety2 = prof$variety^2
 prof$variety3 = prof$variety^3
@@ -211,21 +215,21 @@ head(prof)
 
 ### Linear Model
 
-```{r}
+```{r linear}
 lr = lm(mathprof ~ variety, data = prof)
 summary(lr)
 ```
 
 ### Quadratic Model
 
-```{r}
+```{r quad}
 qr = lm(mathprof ~ variety + variety2, data = prof)
 summary(qr)
 ```
 
 ### Cubic Model
 
-```{r}
+```{r cubic}
 cr = lm(mathprof ~ variety + variety2 + variety3, data = prof)
 summary(cr)
 ```
@@ -236,7 +240,7 @@ summary(cr)
 * Quadratic Fit = RED
 * Cubic Fit = GREEN
 
-```{r}
+```{r fitted plot}
 linear = aov(mathprof ~ variety, data = prof)
 quad = aov(mathprof ~ variety + I(variety^2), data = prof)
 cub = aov(mathprof ~ variety + I(variety^2) + I(variety^3), data = prof)
